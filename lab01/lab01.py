@@ -1,202 +1,145 @@
-import unittest
-import sys
-from contextlib import contextmanager
-from io import StringIO
+from unittest import TestCase
+import random
+import urllib.request
 
-#################################################################################
-# TESTING OUTPUTS
-#################################################################################
-@contextmanager
-def captured_output():
-    new_out, new_err = StringIO(), StringIO()
-    old_out, old_err = sys.stdout, sys.stderr
-    try:
-        sys.stdout, sys.stderr = new_out, new_err
-        yield sys.stdout, sys.stderr
-    finally:
-        sys.stdout, sys.stderr = old_out, old_err
+ROMEO_SOLILOQUY = """
+        But, soft! what light through yonder window breaks?
+        It is the east, and Juliet is the sun.
+        Arise, fair sun, and kill the envious moon,
+        who is already sick and pale with grief,
+        That thou her maid art far more fair than she:
+        be not her maid, since she is envious;
+        her vestal livery is but sick and green
+        and none but fools do wear it; cast it off.
+        It is my lady, O, it is my love!
+        O, that she knew she were!
+        She speaks yet she says nothing: what of that?
+        Her eye discourses; I will answer it.
+        I am too bold, 'tis not to me she speaks:
+        two of the fairest stars in all the heaven,
+        having some business, do entreat her eyes
+        to twinkle in their spheres till they return.
+        What if her eyes were there, they in her head?
+        The brightness of her cheek would shame those stars,
+        as daylight doth a lamp; her eyes in heaven
+        would through the airy region stream so bright
+        that birds would sing and think it were not night.
+        See, how she leans her cheek upon her hand!
+        O, that I were a glove upon that hand,
+        that I might touch that cheek!"""
 
-#################################################################################
+################################################################################
 # EXERCISE 1
-#################################################################################
-
-# implement this function
-def is_perfect(n):
-    result = False
-    factors = []
-    sum = 0
-    for x in range(n):
-        if x == 0:
-            pass
+################################################################################
+# Implement this function
+def compute_ngrams(toks, n=2):
+    """Returns an n-gram dictionary based on the provided list of tokens."""
+    Dict={}
+    for i in range(len(toks)-(n-1)):
+        if toks[i] in Dict:
+            if i + n - 1 < len(toks):
+                tempListA = []
+                for k in range(n):
+                    if k >= 1:
+                        tempListA.append(toks[i + k])
+                Dict[toks[i]].append(tuple(tempListA))
         else:
-            if n % x == 0:
-                factors.append(x)
-    for num in factors:
-        sum += num
-    if sum == n:
-        result = True
-    return result
+            if i + n - 1 < len(toks):
+                tempListB = []
+                for k in range(n):
+                    if k >= 1:
+                        tempListB.append(toks[i+k])
+            Dict[toks[i]]=[tuple(tempListB)]
+    return Dict
 
-
-# (3 points)
 def test1():
-    tc = unittest.TestCase()
-    for n in (6, 28, 496):
-        tc.assertTrue(is_perfect(n), '{} should be perfect'.format(n))
-    for n in (1, 2, 3, 4, 5, 10, 20):
-        tc.assertFalse(is_perfect(n), '{} should not be perfect'.format(n))
-    for n in range(30, 450):
-        tc.assertFalse(is_perfect(n), '{} should not be perfect'.format(n))
+    test1_1()
+    test1_2()
 
-#################################################################################
+# 20 Points
+def test1_1():
+    """A smaller test case for your ngram function."""
+    tc = TestCase()
+    simple_toks = [t.lower() for t in 'I really really like cake.'.split()]
+
+    compute_ngrams(simple_toks)
+    tc.assertEqual(compute_ngrams(simple_toks),
+                   {'i': [('really',)], 'like': [('cake.',)], 'really': [('really',), ('like',)]})
+    tc.assertEqual(compute_ngrams(simple_toks, n=3),
+                   {'i': [('really', 'really')],
+                    'really': [('really', 'like'), ('like', 'cake.')]})
+
+    romeo_toks = [t.lower() for t in ROMEO_SOLILOQUY.split()]
+
+    dct = compute_ngrams(romeo_toks, n=4)
+    tc.assertEqual(dct['but'], [('sick', 'and', 'green'), ('fools', 'do', 'wear')])
+    tc.assertEqual(dct['it'],
+                   [('is', 'the', 'east,'),
+                    ('off.', 'it', 'is'),
+                    ('is', 'my', 'lady,'),
+                    ('is', 'my', 'love!'),
+                    ('were', 'not', 'night.')])
+
+# 30 Points
+def test1_2():
+    """Test your code on Peter Pan."""
+    PETER_PAN_URL = 'https://moss.cs.iit.edu/cs331/data/peterpan.txt'
+    peter_pan_text = urllib.request.urlopen(PETER_PAN_URL).read().decode()
+    tc = TestCase()
+    pp_toks = [t.lower() for t in peter_pan_text.split()]
+    dct = compute_ngrams(pp_toks, n=3)
+    tc.assertEqual(dct['crocodile'],
+                   [('passes,', 'but'),
+                    ('that', 'happened'),
+                    ('would', 'have'),
+                    ('was', 'in'),
+                    ('passed', 'him,'),
+                    ('is', 'about'),
+                    ('climbing', 'it.'),
+                    ('that', 'was'),
+                    ('pass', 'by'),
+                    ('and', 'let'),
+                    ('was', 'among'),
+                    ('was', 'waiting')])
+    tc.assertEqual(len(dct['wendy']), 202)
+    tc.assertEqual(len(dct['peter']), 243)
+
+################################################################################
 # EXERCISE 2
-#################################################################################
-
-# implement this function
-def multiples_of_3_and_5(n):
-    mults = []
-    sum = 0
-    for num in range(n):
-        if num == 0:
-            pass
-        else:
-            if num % 3 == 0:
-                mults.append(num)
-            elif num % 5 == 0:
-                mults.append(num)
-    for numbers in mults:
-        sum += numbers
-    return sum
-# (3 points)
-def test2():
-    tc = unittest.TestCase()
-    tc.assertEqual(multiples_of_3_and_5(10), 23)
-    tc.assertEqual(multiples_of_3_and_5(500), 57918)
-    tc.assertEqual(multiples_of_3_and_5(1000), 233168)
-
-#################################################################################
-# EXERCISE 3
-#################################################################################
-def integer_right_triangles(p):
-    triangles = []
-    pythagorean_triples = [(a,b,c) for a in range(p+1) for b in range(a) for c in range(b) if a*a == b*b + c*c]
-    for (x, y, z) in pythagorean_triples:
-        if (x + y + z) == p:
-            triangles.append((x, y, z))
-    return len(triangles)
-
-
-def test3():
-    tc = unittest.TestCase()
-    tc.assertEqual(integer_right_triangles(60), 2)
-    tc.assertEqual(integer_right_triangles(100), 0)
-    tc.assertEqual(integer_right_triangles(180), 3)
-
-#################################################################################
-# EXERCISE 4
-#################################################################################
-
-# implement this function
-def gen_pattern(chars):
+################################################################################
+# Implement this function
+def gen_passage(ngram_dict, length=10):
     result = []
-    finalLen = len('.'.join(chars[0:]+chars[len(chars)-2::-1]))
-    if len(chars) == 1:
-        print(chars)
-        return
-    else:
-        for x in reversed(range(1, len(chars))):
-            result.append('.'.join(chars[:x-1:-1]+chars[x+1:]).center(finalLen, '.'))
-        result.append('.'.join(chars[::-1]+chars[1:]))
-        for y in range(1, len(chars)):
-            result.append('.'.join(chars[:y-1:-1]+chars[y+1:]).center(finalLen, '.'))
-    for c in result:
-        print(c)
-    return
+    currentToken = random.choice(sorted(ngram_dict.keys()))
+    result.append(currentToken)
+    while len(result) <= length:
+        if currentToken not in ngram_dict:
+            currentToken = random.choice(sorted(ngram_dict.keys()))
+            result.append(currentToken)
+        x=random.choice(ngram_dict[currentToken])
+        for y in x:
+            result.append(y)
+            currentToken = y
+    return ' '.join(result[:10])
 
 
-def test4():
-    tc = unittest.TestCase()
-    with captured_output() as (out,err):
-        gen_pattern('@')
-        tc.assertEqual(out.getvalue().strip(), '@')
-    with captured_output() as (out,err):
-        gen_pattern('@%')
-        tc.assertEqual(out.getvalue().strip(),
-        """
-..%..
-%.@.%
-..%..
-""".strip())
-    with captured_output() as (out,err):
-        gen_pattern('ABC')
-        tc.assertEqual(out.getvalue().strip(),
-        """
-....C....
-..C.B.C..
-C.B.A.B.C
-..C.B.C..
-....C....
-""".strip())
-    with captured_output() as (out,err):
-        gen_pattern('#####')
-        tc.assertEqual(out.getvalue().strip(),
-                             """
-........#........
-......#.#.#......
-....#.#.#.#.#....
-..#.#.#.#.#.#.#..
-#.#.#.#.#.#.#.#.#
-..#.#.#.#.#.#.#..
-....#.#.#.#.#....
-......#.#.#......
-........#........
-""".strip())
-    with captured_output() as (out,err):
-        gen_pattern('abcdefghijklmnop')
-        tc.assertEqual(out.getvalue().strip(),
-"""
-..............................p..............................
-............................p.o.p............................
-..........................p.o.n.o.p..........................
-........................p.o.n.m.n.o.p........................
-......................p.o.n.m.l.m.n.o.p......................
-....................p.o.n.m.l.k.l.m.n.o.p....................
-..................p.o.n.m.l.k.j.k.l.m.n.o.p..................
-................p.o.n.m.l.k.j.i.j.k.l.m.n.o.p................
-..............p.o.n.m.l.k.j.i.h.i.j.k.l.m.n.o.p..............
-............p.o.n.m.l.k.j.i.h.g.h.i.j.k.l.m.n.o.p............
-..........p.o.n.m.l.k.j.i.h.g.f.g.h.i.j.k.l.m.n.o.p..........
-........p.o.n.m.l.k.j.i.h.g.f.e.f.g.h.i.j.k.l.m.n.o.p........
-......p.o.n.m.l.k.j.i.h.g.f.e.d.e.f.g.h.i.j.k.l.m.n.o.p......
-....p.o.n.m.l.k.j.i.h.g.f.e.d.c.d.e.f.g.h.i.j.k.l.m.n.o.p....
-..p.o.n.m.l.k.j.i.h.g.f.e.d.c.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p..
-p.o.n.m.l.k.j.i.h.g.f.e.d.c.b.a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p
-..p.o.n.m.l.k.j.i.h.g.f.e.d.c.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p..
-....p.o.n.m.l.k.j.i.h.g.f.e.d.c.d.e.f.g.h.i.j.k.l.m.n.o.p....
-......p.o.n.m.l.k.j.i.h.g.f.e.d.e.f.g.h.i.j.k.l.m.n.o.p......
-........p.o.n.m.l.k.j.i.h.g.f.e.f.g.h.i.j.k.l.m.n.o.p........
-..........p.o.n.m.l.k.j.i.h.g.f.g.h.i.j.k.l.m.n.o.p..........
-............p.o.n.m.l.k.j.i.h.g.h.i.j.k.l.m.n.o.p............
-..............p.o.n.m.l.k.j.i.h.i.j.k.l.m.n.o.p..............
-................p.o.n.m.l.k.j.i.j.k.l.m.n.o.p................
-..................p.o.n.m.l.k.j.k.l.m.n.o.p..................
-....................p.o.n.m.l.k.l.m.n.o.p....................
-......................p.o.n.m.l.m.n.o.p......................
-........................p.o.n.m.n.o.p........................
-..........................p.o.n.o.p..........................
-............................p.o.p............................
-..............................p..............................
-""".strip()
-)
+# 50 Points
+def test2():
+    """Test case for random passage generation."""
+    tc = TestCase()
+    random.seed(1234)
+    simple_toks = [t.lower() for t in 'I really really like cake.'.split()]
+    tc.assertEqual(gen_passage(compute_ngrams(simple_toks), 10),
+                   'like cake. i really really really really like cake. i')
 
-#################################################################################
-# RUN ALL TESTS
-#################################################################################
+    random.seed(1234)
+    romeo_toks = [t.lower() for t in ROMEO_SOLILOQUY.split()]
+    tc.assertEqual(gen_passage(compute_ngrams(romeo_toks), 10),
+                   'too bold, \'tis not night. see, how she leans her')
+
 def main():
     test1()
     test2()
-    test3()
-    test4()
 
 if __name__ == '__main__':
     main()
