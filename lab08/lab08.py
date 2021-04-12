@@ -24,10 +24,31 @@ class Heap:
 
     def heapify(self, idx=0):
         ### BEGIN SOLUTION
+        left = self._left(idx)
+        right = self._right(idx)
+        mid = idx
+        if len(self.data) > left and (self.key(self.data[left]) > self.key(self.data[mid])):
+            mid = left
+        if len(self.data) > right and (self.key(self.data[right]) > self.key(self.data[mid])):
+            mid = right 
+        if mid != idx:
+            self.data[mid], self.data[idx] = self.data[idx], self.data[mid]
+            idx = mid
+            self.heapify(idx = idx)
+        
         ### END SOLUTION
 
     def add(self, x):
         ### BEGIN SOLUTION
+        idx = len(self.data)
+        self.data.append(x)
+        while idx > 0:
+            parent = self._parent(idx)
+            if self.key(self.data[idx]) > self.key(self.data[parent]):
+                self.data[parent], self.data[idx] = self.data[idx], self.data[parent]
+                idx = parent
+            else:
+                break
         ### END SOLUTION
 
     def peek(self):
@@ -130,6 +151,33 @@ def test_key_heap_5():
 ################################################################################
 def running_medians(iterable):
     ### BEGIN SOLUTION
+    maxheap = Heap()
+    minheap = Heap(key = lambda x:-x)
+    medianslist = []
+    m = None
+    for nums in iterable:
+        if m:
+            if nums > m:
+                minheap.add(nums)
+            elif nums <= m:
+                maxheap.add(nums)
+              
+        else:
+            m = nums
+            maxheap.add(nums)
+        if (len(minheap) - len(maxheap)) > 1:
+            maxheap.add(minheap.pop())
+        elif (len(maxheap) - len(minheap)) > 1:
+            minheap.add(maxheap.pop())
+
+        if (len(minheap) > len(maxheap)):
+            m = minheap.peek()
+        elif (len(minheap) < len(maxheap)):
+            m = maxheap.peek()
+        else:
+            m = ((minheap.peek() + maxheap.peek()) / 2)
+        medianslist.append(m)
+    return medianslist
     ### END SOLUTION
 
 ################################################################################
@@ -174,6 +222,12 @@ def test_median_3():
 ################################################################################
 def topk(items, k, keyf):
     ### BEGIN SOLUTION
+    heap1 = Heap(key = lambda x: keyf(x))
+    for i in range(len(items)):
+        heap1.add(items[i])
+    return [heap1.pop() for i in range(k)]
+        
+
     ### END SOLUTION
 
 ################################################################################
